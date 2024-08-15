@@ -6,6 +6,8 @@ import {
 } from '@loopback/rest-explorer';
 import {RepositoryMixin} from '@loopback/repository';
 import {RestApplication} from '@loopback/rest';
+import {MetricsBindings, MetricsComponent} from '@loopback/metrics';
+
 import {ServiceMixin} from '@loopback/service-proxy';
 import path from 'path';
 import {MySequence} from './sequence';
@@ -29,6 +31,12 @@ export class WaterApp extends BootMixin(
       path: '/explorer',
     });
     this.component(RestExplorerComponent);
+    // enable the metrics
+    this.configure(MetricsBindings.COMPONENT).to({
+      openApiSpec: true,
+    });
+    this.component(MetricsComponent);
+
 
     this.projectRoot = __dirname;
     // Customize @loopback/boot Booter Conventions here
