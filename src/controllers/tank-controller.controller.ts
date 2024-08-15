@@ -1,10 +1,10 @@
 import {
-  Request,
-  RestBindings,
   get,
   response,
-  ResponseObject,
+  ResponseObject
 } from '@loopback/rest';
+
+import {getTankIo} from '../gpio/tankgpio.js';
 
 const TANK_RESPONSE: ResponseObject = {
   description: 'Tank Response',
@@ -29,6 +29,10 @@ const TANK_RESPONSE: ResponseObject = {
                 type: 'string',
                 description: 'unit of measurement',
               },
+              when: {
+                type: 'string',
+                description: 'when data was received',
+              }
             },
           },
         },
@@ -40,17 +44,22 @@ const TANK_RESPONSE: ResponseObject = {
 
 
 export class TankControllerController {
-  constructor() {}
+  constructor() { }
 
   @get('/tank')
   @response(200, TANK_RESPONSE)
-  tank(): object {
-    throw Error('foo')
-    // Reply with a greeting, the current time, the url, and request headers
+  async tank(): Promise<object> {
+    const t = getTankIo();
+    await t.setup(); // make sure it's setup.
+
+    if (!t.tankTime) throw Error(`No data yet`);
+
     return {
-      level: 123.456,
-      max: 999.000,
-      unit: 'gallons',
+      level: t.tankHeight,
+      volume: t.tankVolume,
+      max: t.tankVolumeMax,
+      unit: t.tankVolumeUnit,
+      when: t.tankTime.toISOString(),
     };
   }
 }
