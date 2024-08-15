@@ -39,12 +39,9 @@ const FLOW_RESPONSE: ResponseObject = {
 export class FlowControllerController {
   constructor() {}
 
-  // Map to `GET /ping`
   @get('/flow')
   @response(200, FLOW_RESPONSE)
   flow(): object {
-    throw Error('foo')
-    // Reply with a greeting, the current time, the url, and request headers
     return {
       reading: 123.456,
       unit: 'gallons',

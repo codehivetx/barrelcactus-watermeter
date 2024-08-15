@@ -42,7 +42,6 @@ const TANK_RESPONSE: ResponseObject = {
 export class TankControllerController {
   constructor() {}
 
-  // Map to `GET /ping`
   @get('/tank')
   @response(200, TANK_RESPONSE)
   tank(): object {
