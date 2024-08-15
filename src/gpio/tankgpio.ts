@@ -1,7 +1,5 @@
 import {setTimeout} from 'node:timers/promises';
-import {init} from 'raspi';
-import {DigitalInput, DigitalOutput, HIGH, LOW, PULL_UP} from 'raspi-gpio';
-
+import {Bias, Edge, Input, Output, RaspberryPi_5B, Watch} from 'opengpio';
 /** little shim for delay, for documentation */
 async function delay(n: number) {
     await setTimeout(n);
@@ -10,11 +8,11 @@ async function delay(n: number) {
 /** this is reflected in 'local-config.json' at the root. */
 export class TankConfig {
     /** tank: CS for mcp3201 (e.g. GPIO18) */
-    tank_cs: number;
+    tank_cs: string;
     /** tank: DOUT for mcp3201 */
-    tank_dout: number;
+    tank_dout: string;
     /** tank: CLK for mcp3201 */
-    tank_clk: number;
+    tank_clk: string;
     /** tank: bias for mcp3201 */
     tank_bias: number;
     /** tank: subtract from r */
@@ -32,7 +30,7 @@ export class TankConfig {
     /** tank: poll seconds */
     tank_poll_sec: number;
     /* flow: volume per click */
-    flow_vpc: number;
+    flow_vpc: string;
     /* flow: unit per click eg 'gallons' */
     flow_vunit: string;
 };
@@ -51,10 +49,10 @@ export class TankIo {
     private setupPromise?: Promise<boolean>;
     // private pollTank: NodeJS.Timeout;
 
-    private cs: DigitalOutput;
-    private dout: DigitalInput;
-    private clk: DigitalOutput;
-    private vpc: DigitalInput;
+    private cs: Output;
+    private dout: Input;
+    private clk: Output;
+    private vpc: Watch;
 
     public get tankHeightUnit() {
         return tankConfig.tank_hunit;
@@ -73,27 +71,27 @@ export class TankIo {
         // adapted from https://www.internetdelascosas.cl/2013/03/10/usando-adc-en-raspberry-pi-mcp3201/
         const dtim = 0.1;
         const vRef = 3.28;
-        this.cs.write(HIGH);
+        this.cs.value = true;
         await delay(dtim);
-        this.clk.write(HIGH);
+        this.clk.value = true;
         await delay(dtim);
-        this.cs.write(LOW);
+        this.cs.value = false;
         await delay(dtim);
 
         let i1 = 14;
         let binData = 0;
         while (i1 >= 0) {
-            this.clk.write(LOW);
+            this.clk.value = false;
             await delay(dtim);
-            let bitDOUT = this.dout.read();
-            this.clk.write(HIGH);
+            let bitDOUT: number = this.dout.value ? 1 : 0; // TODO: leftover from pygpio
+            this.clk.value = true;
             await delay(dtim);
             bitDOUT = bitDOUT << i1;
             binData |= bitDOUT;
             i1 -= 1;
         }
 
-        this.cs.write(HIGH);
+        this.cs.value = true;
         await delay(dtim);
         // done with i/o
 
@@ -116,8 +114,10 @@ export class TankIo {
     private schedulePoll() {
         const t = this;
         new Promise(async (resolve, reject) => {
-            console.log('delaying..');
-            await delay(tankConfig.tank_poll_sec);
+            if (t.tankTime) {
+                console.log('delaying..');
+                await delay(tankConfig.tank_poll_sec * 1000.0);
+            }
             console.log('polling');
             t.doPoll().then(() => t.schedulePoll(), (e) => console.error(e));
         });
@@ -125,41 +125,34 @@ export class TankIo {
 
     private async pinSetup() {
         console.dir({tankConfig});
-        this.cs = new DigitalOutput({
-            pin: tankConfig.tank_cs,
-        });
-        this.dout = new DigitalInput({
-            pin: tankConfig.tank_dout,
-        });
-        this.clk = new DigitalOutput({
-            pin: tankConfig.tank_clk,
-        });
+        this.cs = RaspberryPi_5B.output(RaspberryPi_5B.bcm.GPIO18); // TODO: tank_cs
+        this.dout = RaspberryPi_5B.input(RaspberryPi_5B.bcm.GPIO23); // TODO: tank_dout
+        this.clk = RaspberryPi_5B.output(RaspberryPi_5B.bcm.GPIO24); // TODO: tank_clk
         if (false) {
             // need to cutover
-            this.vpc = new DigitalInput({
-                pin: tankConfig.flow_vpc,
-                pullResistor: PULL_UP,
+            this.vpc = RaspberryPi_5B.watch(RaspberryPi_5B.bcm.GPIO12, Edge.Both, {
+                debounce: 20,
+                bias: Bias.PullUp,
             });
         }
 
         // now set them up
-        this.cs.write(LOW);
-        this.clk.write(LOW);
+        this.cs.value = false;
+        this.clk.value = false;
     }
 
     async setup() {
         const t = this;
+        // TODO: without the init() we don't need this anymore, but we retain it for the singleton-ness
         this.setupPromise = this.setupPromise ?? new Promise((resolve, reject) => {
-            init(() => {
-                try {
-                    t.pinSetup().then(() => {
-                        t.schedulePoll();
-                        resolve(true);
-                    }, reject);
-                } catch (e) {
-                    return reject(e);
-                }
-            });
+            try {
+                t.pinSetup().then(() => {
+                    t.schedulePoll();
+                    resolve(true);
+                }, reject);
+            } catch (e) {
+                return reject(e);
+            }
 
         });
         return this.setupPromise;
