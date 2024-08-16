@@ -38,7 +38,7 @@
   },
   "repository": {
     "type": "git",
-    "url": ""
+    "url": "https://github.com/codehivetx/barrelcactus-watermeter.git"
   },
   "author": "Steven R. Loomis <srl295@codehivetx.us>",
   "license": "Apache-2.0",
