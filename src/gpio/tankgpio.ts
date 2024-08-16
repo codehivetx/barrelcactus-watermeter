@@ -113,13 +113,19 @@ export class TankIo {
 
     private schedulePoll() {
         const t = this;
-        new Promise(async (resolve, reject) => {
-            if (t.tankTime) {
-                console.log('delaying..');
-                await delay(tankConfig.tank_poll_sec * 1000.0);
+        return new Promise(async (resolve, reject) => {
+            try {
+                if (t.tankTime) {
+                    // console.log('delaying..');
+                    await delay(tankConfig.tank_poll_sec * 1000.0);
+                }
+                // console.log('polling');
+                await t.doPoll();
+                t.schedulePoll();
+                resolve(true);
+            } catch (e) {
+                reject(e);
             }
-            console.log('polling');
-            t.doPoll().then(() => t.schedulePoll(), (e) => console.error(e));
         });
     }
 
@@ -146,10 +152,10 @@ export class TankIo {
         // TODO: without the init() we don't need this anymore, but we retain it for the singleton-ness
         this.setupPromise = this.setupPromise ?? new Promise((resolve, reject) => {
             try {
-                t.pinSetup().then(() => {
-                    t.schedulePoll();
-                    resolve(true);
-                }, reject);
+                t.pinSetup().then(() =>
+                    t.schedulePoll())
+                    .then(() => resolve(true),
+                        (e) => reject(e));
             } catch (e) {
                 return reject(e);
             }
