@@ -1,10 +1,10 @@
 import {
-  Request,
-  RestBindings,
   get,
   response,
-  ResponseObject,
+  ResponseObject
 } from '@loopback/rest';
+import {getTankIo} from '../gpio/tankgpio';
+
 
 
 const FLOW_RESPONSE: ResponseObject = {
@@ -26,6 +26,10 @@ const FLOW_RESPONSE: ResponseObject = {
                 type: 'string',
                 description: 'unit of measurement',
               },
+              when: {
+                type: 'string',
+                description: 'time of measurement',
+              },
             },
           },
         },
@@ -37,14 +41,20 @@ const FLOW_RESPONSE: ResponseObject = {
 
 
 export class FlowControllerController {
-  constructor() {}
+  constructor() { }
 
   @get('/flow')
   @response(200, FLOW_RESPONSE)
-  flow(): object {
+  async flow(): Promise<object> {
+    const t = getTankIo();
+    await t.setup(); // make sure it's setup.
+
+    if (!t.flowTime) throw Error(`No data yet`);
+
     return {
-      reading: 123.456,
-      unit: 'gallons',
+      reading: t.flowVolume,
+      unit: t.flowVolumeUnit,
+      when: t.flowTime.toISOString(),
     };
   }
 }

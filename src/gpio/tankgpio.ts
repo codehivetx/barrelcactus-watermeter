@@ -135,10 +135,11 @@ export class TankIo {
         return new Promise(async (resolve, reject) => {
             try {
                 if (t.tankTime) {
-                    // console.log('delaying..');
+                    // only delay after the first time. The first time through we're
+                    // trying to get to our first reading.
+                    // As noted elsewhere, we *could* re-read the last good tank reading.
                     await delay(tankConfig.tank_poll_sec * 1000.0);
                 }
-                // console.log('polling');
                 await t.doPoll();
                 t.schedulePoll();
                 resolve(true);
@@ -159,6 +160,30 @@ export class TankIo {
                 debounce: 20,
                 bias: Bias.PullUp,
             });
+        } else {
+            const t = this;
+            // FAKE DATA
+            async function fire0() {
+                await setTimeout(2048);
+                t.flowTime = new Date();
+                t.flowVolume = (t.flowVolume ?? 0) + 1;
+                tdata.writeFlow(t);
+            }
+            async function fire1() {
+                await setTimeout(4000);
+                t.flowTime = new Date();
+                t.flowVolume = (t.flowVolume ?? 0) + 1;
+                tdata.writeFlow(t);
+            }
+            async function fire2() {
+                await setTimeout(8000);
+                t.flowTime = new Date();
+                t.flowVolume = (t.flowVolume ?? 0) + 1;
+                tdata.writeFlow(t);
+            }
+            fire0(); // don't handle
+            fire1(); // don't handle
+            fire2(); // don't handle
         }
 
         // now set them up
