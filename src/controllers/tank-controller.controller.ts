@@ -27,7 +27,11 @@ const TANK_RESPONSE: ResponseObject = {
               },
               unit: {
                 type: 'string',
-                description: 'unit of measurement',
+                description: 'volume unit of measurement',
+              },
+              lunit: {
+                type: 'string',
+                description: 'level unit of measurement',
               },
               when: {
                 type: 'string',
@@ -59,6 +63,7 @@ export class TankControllerController {
       volume: t.tankVolume,
       max: t.tankVolumeMax,
       unit: t.tankVolumeUnit,
+      lunit: t.tankHeightUnit,
       when: t.tankTime.toISOString(),
     };
   }
