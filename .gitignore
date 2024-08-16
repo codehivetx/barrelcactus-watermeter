@@ -66,3 +66,4 @@ typings/
 # Emacs auto-save file
 \#*#
 local-config.json
+local-logs/

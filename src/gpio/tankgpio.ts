@@ -1,5 +1,6 @@
 import {setTimeout} from 'node:timers/promises';
 import {Bias, Edge, Input, Output, RaspberryPi_5B, Watch} from 'opengpio';
+import {TankData} from './tankdata';
 /** little shim for delay, for documentation */
 async function delay(n: number) {
     await setTimeout(n);
@@ -33,18 +34,32 @@ export class TankConfig {
     flow_vpc: string;
     /* flow: unit per click eg 'gallons' */
     flow_vunit: string;
+
+    /* path to log / data files */
+    logdir: string;
 };
 
+/** our config from local-config.json */
 export const tankConfig: TankConfig = require('../../local-config.json');
 
+/** logging and data store */
+export const tdata = new TankData(tankConfig.logdir);
+
+/** this class manages all i/o */
 export class TankIo {
     constructor() { }
 
+    /** when was the last sucessful tank read if any */
     public tankTime?: Date;
+
+    /** when was the last successful flow read if any. if falsy, number will be from data */
     public flowTime?: Date;
 
     public tankHeight?: number;
     public tankVolume?: number;
+
+    /** current read from the meter */
+    public flowVolume?: number;
 
     private setupPromise?: Promise<boolean>;
     // private pollTank: NodeJS.Timeout;
@@ -104,6 +119,10 @@ export class TankIo {
         this.tankVolume = this.tankHeight * tankConfig.tank_vph;
         this.tankTime = new Date();
 
+        // update with latest data
+        tdata.writeTank(this);
+
+        // TODO: localise here
         console.log(`${this.tankTime} : ${this.tankHeight}", ${this.tankVolume}g/${this.tankVolumeMax}g`);
     }
 
