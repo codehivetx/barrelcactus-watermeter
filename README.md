@@ -1,5 +1,22 @@
 # @codehivetx/barrelcactus-watermeter
 
+What is this?
+
+This monitors two things for a rainwater system:
+
+- supply (volume of water available, based on height of water level in the tank)
+- consumption (volume used - such as from a normal residential water meter).
+
+For this specific implementation, we use:
+- a 4-20ma pressure transducer measuring water column (in inches). Multiply this by water surface area to get volume.
+- a click-per-gallon water meter- a normal water meter, but a contact that closes once per gallon.
+
+## How to wire, setup, configure?
+
+TODO, TODO, TODO!!!!
+
+## How i made it
+
 This application is generated using [LoopBack 4 CLI](https://loopback.io/doc/en/lb4/Command-line-interface.html) with the
 [initial project layout](https://loopback.io/doc/en/lb4/Loopback-application-layout.html).
 
