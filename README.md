@@ -12,6 +12,9 @@ For this specific implementation, we use:
 - a click-per-gallon water meter- a normal water meter, but a contact that closes once per gallon.
 - an rPi 5
 
+See also <https://github.com/codehivetx/barrelcactus-dashboard> for the dashboard.
+
+
 ## How to wire, setup, configure?
 
 TODO, TODO, TODO!!!!
@@ -88,9 +91,8 @@ npm run lint:fix
 npm test
 ```
 
-## What's next
+## License / Copyright
 
-Please check out [LoopBack 4 documentation](https://loopback.io/doc/en/lb4/) to
-understand how you can continue to add features to this application.
+© 2024 Code Hive Tx, LLC
 
-[![LoopBack](https://github.com/loopbackio/loopback-next/raw/master/docs/site/imgs/branding/Powered-by-LoopBack-Badge-(blue)-@2x.png)](http://loopback.io/)
+Apache-2.0 see [LICENSE](./LICENSE)
