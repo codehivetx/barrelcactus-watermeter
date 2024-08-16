@@ -1,6 +1,14 @@
 import {setTimeout} from 'node:timers/promises';
 import {Bias, Edge, Input, Output, RaspberryPi_5B, Watch} from 'opengpio';
 import {TankData} from './tankdata';
+
+// TODO: better way to hook this in? Putting this here because we have the config data for it.
+import {
+    Gauge,
+} from 'prom-client';
+
+
+
 /** little shim for delay, for documentation */
 async function delay(n: number) {
     await setTimeout(n);
@@ -47,6 +55,16 @@ export const tdata = new TankData(tankConfig.logdir);
 
 /** this class manages all i/o */
 export class TankIo {
+    levelMetric: string;
+    levelGauge: Gauge<string>;
+    volumeMetric: string;
+    volumeGauge: Gauge<never>;
+    volumeMaxGauge: Gauge<never>;
+    levelMaxGauge: Gauge<never>;
+    flowMetric: string;
+    flowGauge: Gauge<never>;
+    tankTimeGauge: Gauge<string>;
+    flowTimeGauge: Gauge<never>;
     constructor() {
         // read in last data
         const olddata = tdata.readFlow();
@@ -58,6 +76,57 @@ export class TankIo {
             this.flowTime = flowTime;
             this.flowVolume = flowVolume;
             console.dir({olddata});
+        }
+
+        // setup prom
+        // ----------
+        const bcprefix = `barrelcactus`;
+        this.tankTimeGauge = new Gauge({
+            name: `${bcprefix}_tank_time`,
+            help: `Tank read time`,
+            labelNames: [],
+        });
+        this.flowTimeGauge = new Gauge({
+            name: `${bcprefix}_flow_time`,
+            help: `Flow read time`,
+            labelNames: [],
+        });
+        this.levelMetric = `${bcprefix}_tank_level_${tankConfig.tank_hunit}`; // clever i18n-savvy pluralization
+        // TODO: check for double registry?
+        this.levelGauge = new Gauge({
+            name: this.levelMetric,
+            help: `Tank water level`,
+            labelNames: [], // todo: labelnames
+        });
+        this.levelMaxGauge = new Gauge({
+            name: this.levelMetric + "_max",
+            help: `Tank water max level`,
+            labelNames: [], // todo: labelnames
+        });
+        // calculate the max level (not exposed via REST currently.)
+        this.levelMaxGauge.set(tankConfig.tank_vmax / tankConfig.tank_vph);
+        this.volumeMetric = `${bcprefix}_tank_volume_${tankConfig.tank_vunit}`; // clever i18n-savvy pluralization
+        this.volumeGauge = new Gauge({
+            name: this.volumeMetric,
+            help: `Tank water volume`,
+            labelNames: [], // todo: labelnames
+        });
+        this.volumeMaxGauge = new Gauge({
+            name: this.volumeMetric + "_max",
+            help: `Tank water max volume`,
+            labelNames: [], // todo: labelnames
+        });
+        this.volumeMaxGauge.set(tankConfig.tank_vmax);
+        this.flowMetric = `${bcprefix}_flow_volume_${tankConfig.flow_vunit}`; // clever i18n-savvy pluralization
+        this.flowGauge = new Gauge({
+            name: this.flowMetric,
+            help: `Flow volume (meter)`,
+            labelNames: [], // todo: labelnames
+        });
+        // if we have a flowVolume, set it.
+        if (this.flowVolume) {
+            this.flowGauge.set(this.flowVolume);
+            this.flowTimeGauge.setToCurrentTime(); // TODO: not quite true- should be old date
         }
     }
 
@@ -137,6 +206,10 @@ export class TankIo {
         // update with latest data
         tdata.writeTank(this);
 
+        this.levelGauge.set(this.tankHeight);
+        this.volumeGauge.set(this.tankVolume);
+        this.tankTimeGauge.setToCurrentTime();
+
         // TODO: localise here
         console.log(`${this.tankTime} : ${this.tankHeight}", ${this.tankVolume}g/${this.tankVolumeMax}g`);
     }
@@ -182,6 +255,8 @@ export class TankIo {
                     tdata.writeFlow(this);
                     // TODO: localize here.
                     console.log(`${this.flowTime} : ${this.flowVolume} ${this.flowVolumeUnit}`);
+                    this.flowGauge.set(this.flowVolume);
+                    this.flowTimeGauge.setToCurrentTime();
                 } else {
                     this.flowHalf = true;
                     console.log('/');
