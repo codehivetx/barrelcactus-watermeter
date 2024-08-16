@@ -47,7 +47,19 @@ export const tdata = new TankData(tankConfig.logdir);
 
 /** this class manages all i/o */
 export class TankIo {
-    constructor() { }
+    constructor() {
+        // read in last data
+        const olddata = tdata.readFlow();
+        if (olddata) {
+            const {flowTime, flowVolume, flowVolumeUnit} = olddata;
+            if (flowVolumeUnit != this.flowVolumeUnit) {
+                throw Error(`Something is really wrong, our volume unit is ${this.flowVolumeUnit} but stored data was ${flowVolumeUnit}`);
+            }
+            this.flowTime = flowTime;
+            this.flowVolume = flowVolume;
+            console.dir({olddata});
+        }
+    }
 
     /** when was the last sucessful tank read if any */
     public tankTime?: Date;

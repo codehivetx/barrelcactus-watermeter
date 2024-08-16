@@ -67,7 +67,13 @@ export class TankData {
     try {
       const s = readFileSync(this.flowFile, 'utf-8').trim().split('\n').slice(-1)[0];
       const o = JSON.parse(s);
-      return <FlowUpdate>o;
+
+      // translate compact form back to FlowUpdate
+      return {
+        flowTime: o.ft ? new Date(o.ft) : undefined,
+        flowVolume: o.fv,
+        flowVolumeUnit: o.fvu,
+      };
     } catch (e) {
       console.error(e);
       return undefined;
