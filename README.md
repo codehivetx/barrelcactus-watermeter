@@ -10,10 +10,14 @@ This monitors two things for a rainwater system:
 For this specific implementation, we use:
 - a 4-20ma pressure transducer measuring water column (in inches). Multiply this by water surface area to get volume.
 - a click-per-gallon water meter- a normal water meter, but a contact that closes once per gallon.
+- an rPi 5
 
 ## How to wire, setup, configure?
 
 TODO, TODO, TODO!!!!
+
+- edit `local-config.json` and see the `TankConfig` object for details.
+- opengpio has some special setup instructions (TODO!) for v2.1 lib
 
 ## How i made it
 
