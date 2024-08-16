@@ -73,6 +73,9 @@ export class TankIo {
     /** current read from the meter */
     public flowVolume?: number;
 
+    /** 'halfway' tick. */
+    public flowHalf = false;
+
     private setupPromise?: Promise<boolean>;
     // private pollTank: NodeJS.Timeout;
 
@@ -166,15 +169,27 @@ export class TankIo {
         this.cs = RaspberryPi_5B.output(RaspberryPi_5B.bcm.GPIO18); // TODO: tank_cs
         this.dout = RaspberryPi_5B.input(RaspberryPi_5B.bcm.GPIO23); // TODO: tank_dout
         this.clk = RaspberryPi_5B.output(RaspberryPi_5B.bcm.GPIO24); // TODO: tank_clk
-        if (false) {
-            // need to cutover
+        if (true) {
             this.vpc = RaspberryPi_5B.watch(RaspberryPi_5B.bcm.GPIO12, Edge.Both, {
                 debounce: 20,
                 bias: Bias.PullUp,
             });
+            this.vpc.on('change', (value) => {
+                if (value) {
+                    this.flowHalf = false;
+                    this.flowTime = new Date();
+                    this.flowVolume = (this.flowVolume ?? 0) + 1;
+                    tdata.writeFlow(this);
+                    // TODO: localize here.
+                    console.log(`${this.flowTime} : ${this.flowVolume} ${this.flowVolumeUnit}`);
+                } else {
+                    this.flowHalf = true;
+                    console.log('/');
+                }
+            });
         } else {
+            // FAKE DATA FOR TESTING
             const t = this;
-            // FAKE DATA
             async function fire0() {
                 await setTimeout(2048);
                 t.flowTime = new Date();
